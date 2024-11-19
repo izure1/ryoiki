@@ -1,0 +1,21 @@
+{
+  "name": "@izure/ryoiki",
+  "version": "0.0.1",
+  "description": "Lock system with a specific range.",
+  "author": "izure1 <admin@izure.org>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/izure1/ryoiki.git"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publish": {
+    "include": [
+      "LICENSE",
+      "README.md",
+      "src/**/*.ts"
+    ]
+  }
+}

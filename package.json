@@ -1,0 +1,55 @@
+{
+  "name": "ryoiki",
+  "version": "0.0.1",
+  "description": "A range-based locking library for JavaScript, enabling concurrent read locks and exclusive write locks with seamless management of overlapping ranges.",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.mjs",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/esm/index.mjs",
+      "require": "./dist/cjs/index.cjs"
+    }
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "test": "jest",
+    "build": "node build/index.js && tsc"
+  },
+  "keywords": [
+    "locking",
+    "range-lock",
+    "read-lock",
+    "write-lock",
+    "range-based",
+    "concurrency",
+    "synchronization",
+    "overlap-handling",
+    "task-management",
+    "async-lock",
+    "JavaScript",
+    "typescript"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/izure1/ryoiki.git"
+  },
+  "author": "izure1 <admin@izure.org>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chance": "^1.1.6",
+    "@types/core-js": "^2.5.8",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.9.0",
+    "chance": "^1.1.12",
+    "core-js": "^3.39.0",
+    "esbuild": "^0.24.0",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.6.3"
+  }
+}
