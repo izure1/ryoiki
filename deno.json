@@ -1,6 +1,6 @@
 {
   "name": "@izure/ryoiki",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Lock system with a specific range.",
   "author": "izure1 <admin@izure.org>",
   "license": "MIT",
