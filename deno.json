@@ -1,7 +1,7 @@
 {
   "name": "@izure/ryoiki",
   "version": "1.0.0",
-  "description": "Lock system with a specific range.",
+  "description": "A range-based locking library for JavaScript, enabling concurrent read locks and exclusive write locks with seamless management of overlapping ranges.",
   "author": "izure1 <admin@izure.org>",
   "license": "MIT",
   "repository": {
