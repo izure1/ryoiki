@@ -1,5 +1,8 @@
 # Ryoiki
 
+[![](https://data.jsdelivr.com/v1/package/npm/ryoiki/badge)](https://www.jsdelivr.com/package/npm/ryoiki)
+![Node.js workflow](https://github.com/izure1/ryoiki/actions/workflows/node.js.yml/badge.svg)
+
 `Ryoiki` is a JavaScript library that provides read/write locks based on specific ranges.  
 This library helps maintain consistency and stability by controlling concurrent access to data.
 
@@ -7,6 +10,12 @@ This library helps maintain consistency and stability by controlling concurrent 
 
 ```bash
 npm install ryoiki
+```
+
+or
+
+```typescript
+import { Ryoiki } from 'https://cdn.jsdelivr.net/npm/ryoiki@1/+esm'
 ```
 
 ## 🚀 Usage
