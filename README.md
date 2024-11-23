@@ -106,7 +106,7 @@ await ryoiki.readLock([0, 10], async (_lockId) => {
   - `callback`: Async function executed after lock is acquired.
     - `lockId`: Unique ID for the current lock.
   - `timeout`: Optional timeout in milliseconds. If the lock cannot be acquired within the specified time, the operation will throw a timeout error.
-    - Defaults to `Infinity` (wait indefinitely).
+    - Defaults to `undefined` (wait indefinitely).
 - **Returns**: The result of the callback function.
 
 ### `writeLock(range?: [number, number], callback: (lockId: string) => Promise<T>, timeout?: number): Promise<T>`
@@ -117,7 +117,7 @@ await ryoiki.readLock([0, 10], async (_lockId) => {
   - `callback`: Async function executed after lock is acquired.
     - `lockId`: Unique ID for the current lock.
   - `timeout`: Optional timeout in milliseconds. If the lock cannot be acquired within the specified time, the operation will throw a timeout error.
-    - Defaults to `Infinity` (wait indefinitely).
+    - Defaults to `undefined` (wait indefinitely).
 - **Returns**: The result of the callback function.
 
 ### `readUnlock(lockId: string): void`
