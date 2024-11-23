@@ -183,4 +183,48 @@ describe('Ryoiki', () => {
       expect(b).resolves.toEqual([1, 2]),
     ])
   })
+
+  test('timeout', async () => {
+    const { ryoiki, sample, read, write } = create(10)
+    
+    let lockA: string
+    const a = ryoiki.readLock(ryoiki.range(0, 2), async (_lockId) => {
+      lockA = _lockId
+      await delay(1000)
+      return read(0, 2)
+    }).finally(() => ryoiki.readUnlock(lockA))
+
+    let lockB: string
+    const b = ryoiki.readLock(ryoiki.range(1, 2), async (_lockId) => {
+      lockB = _lockId
+      return read(1, 3)
+    }, 500).finally(() => ryoiki.readUnlock(lockB))
+
+    await Promise.all([
+      expect(a).resolves.toEqual([0, 1]),
+      expect(b).resolves.toEqual([1, 2]),
+    ])
+
+    let lockC: string
+    const c = ryoiki.writeLock(ryoiki.range(0, 2), async (_lockId) => {
+      lockC = _lockId
+      await write(0, [1, 2])
+      await delay(1000)
+      return sample.slice(0, 2)
+    }).finally(() => ryoiki.writeUnlock(lockC))
+
+    let lockD: string
+    const d = ryoiki.writeLock(ryoiki.range(1, 2), async (_lockId) => {
+      lockD = _lockId
+      await write(1, [3, 4])
+      return sample.slice(1, 3)
+    }, 500).finally(() => ryoiki.writeUnlock(lockD))
+
+    await Promise.all([
+      expect(c).resolves.toEqual([1, 2]),
+      expect(d).rejects.toThrow(),
+    ])
+
+    expect(sample.slice(1, 3)).toEqual([2, 2])
+  })
 })

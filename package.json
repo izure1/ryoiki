@@ -1,6 +1,6 @@
 {
   "name": "ryoiki",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A range-based locking library for JavaScript, enabling concurrent read locks and exclusive write locks with seamless management of overlapping ranges.",
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/esm/index.mjs",

@@ -58,6 +58,10 @@ export class Ryoiki {
     return new Error(`The '${lockId}' task not existing in task queue.`)
   }
 
+  protected static ERR_TIMEOUT(lockId: string, timeout: number): Error {
+    return new Error(`The task with ID '${lockId}' failed to acquire the lock within the timeout(${timeout}ms).`)
+  }
+
   /**
    * Constructs a new instance of the Ryoiki class.
    */
@@ -97,6 +101,30 @@ export class Ryoiki {
     }
   }
 
+  private _handleOverload<T>(
+    args: any[],
+    handlers: Record<string, (...parsedArgs: any[]) => T>,
+    argPatterns: Record<string, any[]>
+  ): T {
+    for (const [key, pattern] of Object.entries(argPatterns)) {
+      if (this._matchArgs(args, pattern)) {
+        return handlers[key](...args)
+      }
+    }
+    throw new Error('Invalid arguments')
+  }
+  
+  private _matchArgs(args: any[], pattern: any[]): boolean {
+    return args.every((arg, index) => {
+      const expectedType = pattern[index]
+      if (expectedType === undefined) return typeof arg === 'undefined'
+      if (expectedType === Function)  return typeof arg === 'function'
+      if (expectedType === Number)    return typeof arg === 'number'
+      if (expectedType === Array)     return Array.isArray(arg)
+      return false
+    })
+  }
+
   private _createRandomId(): string {
     const timestamp = Date.now().toString(36)
     const random = Math.random().toString(36).substring(2)
@@ -125,12 +153,22 @@ export class Ryoiki {
   private _lock<T>(
     queue: TaskUnits,
     range: RyoikiRange,
+    timeout: number,
     task: TaskCallback<T>,
     condition: TaskUnit['condition']
   ): Promise<T> {
     return new Promise((resolve, reject) => {
+      let timeoutId: any = null
+      if (timeout >= 0) {
+        timeoutId = setTimeout(() => {
+          reject(Ryoiki.ERR_TIMEOUT(id, timeout))
+        }, timeout)
+      }
       const id = this._createRandomId()
       const alloc = async () => {
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId)
+        }
         const [err, v] = await Ryoiki.CatchError<T>(task(id))
         if (err) reject(err)
         else resolve(v)
@@ -148,41 +186,60 @@ export class Ryoiki {
    * Acquires a read lock for the entire range.
    * @template T - The return type of the task.
    * @param task - The task to execute within the lock.
+   * @param timeout - The timeout for acquiring the lock.
+   * If the lock cannot be acquired within this period, an error will be thrown.
+   * If this value is not provided, no timeout will be set.
    * The task receives the lock ID as an argument.
    * @returns A promise resolving to the result of the task execution.
    */
-  readLock<T>(task: TaskCallback<T>): Promise<T>
+  readLock<T>(task: TaskCallback<T>, timeout?: number|undefined): Promise<T>
   /**
    * Acquires a read lock for a specific range.
    * @template T - The return type of the task.
    * @param range - The range to lock, specified as a tuple [start, end].
    * @param task - The task to execute within the lock.
+   * @param timeout - The timeout for acquiring the lock.
+   * If the lock cannot be acquired within this period, an error will be thrown.
+   * If this value is not provided, no timeout will be set.
    * The task receives the lock ID as an argument.
    * @returns A promise resolving to the result of the task execution.
    */
-  readLock<T>(range: RyoikiRange, task: TaskCallback<T>): Promise<T>
+  readLock<T>(range: RyoikiRange, task: TaskCallback<T>, timeout?: number|undefined): Promise<T>
   /**
    * Internal implementation of the read lock. Handles both overloads.
    * @template T - The return type of the task.
    * @param arg0 - Either a range or a task callback.
    * If a range is provided, the task is the second argument.
    * @param arg1 - The task to execute, required if a range is provided.
+   * @param arg2 - The timeout for acquiring the lock.
+   * If the lock cannot be acquired within this period, an error will be thrown.
+   * If this value is not provided, no timeout will be set.
    * @returns A promise resolving to the result of the task execution.
    */
-  readLock<T>(arg0: RyoikiRange|TaskCallback<T>, arg1?: TaskCallback<T>): Promise<T> {
-    let range: RyoikiRange
-    let task: TaskCallback<T>
-    if (arg1) {
-      range = arg0 as RyoikiRange
-      task = arg1
-    }
-    else {
-      range = [-Infinity, Infinity]
-      task = arg0 as TaskCallback<T>
-    }
+  readLock<T>(
+    arg0: RyoikiRange|TaskCallback<T>,
+    arg1?: TaskCallback<T>|number|undefined,
+    arg2?: number|undefined
+  ): Promise<T> {
+    const [range, task, timeout] = this._handleOverload(
+      [arg0, arg1, arg2],
+      {
+        rangeTask: (range, task) => [range, task, -1],
+        rangeTaskTimeout: (range, task, timeout) => [range, task, timeout],
+        task: (task) => [[-Infinity, Infinity], task, -1],
+        taskTimeout: (task, timeout) => [[-Infinity, Infinity], task, timeout],
+      },
+      {
+        task: [Function],
+        taskTimeout: [Function, Number],
+        rangeTask: [Array, Function],
+        rangeTaskTimeout: [Array, Function, Number],
+      }
+    )
     return this._lock(
       this.readQueue,
       range,
+      timeout,
       task,
       () => !this.rangeOverlapping(this.writings, range)
     )
@@ -192,41 +249,60 @@ export class Ryoiki {
    * Acquires a write lock for the entire range.
    * @template T - The return type of the task.
    * @param task - The task to execute within the lock.
+   * @param timeout - The timeout for acquiring the lock.
+   * If the lock cannot be acquired within this period, an error will be thrown.
+   * If this value is not provided, no timeout will be set.
    * The task receives the lock ID as an argument.
    * @returns A promise resolving to the result of the task execution.
    */
-  writeLock<T>(task: TaskCallback<T>): Promise<T>
+  writeLock<T>(task: TaskCallback<T>, timeout?: number|undefined): Promise<T>
   /**
    * Acquires a write lock for a specific range.
    * @template T - The return type of the task.
    * @param range - The range to lock, specified as a tuple [start, end].
    * @param task - The task to execute within the lock.
+   * @param timeout - The timeout for acquiring the lock.
+   * If the lock cannot be acquired within this period, an error will be thrown.
+   * If this value is not provided, no timeout will be set.
    * The task receives the lock ID as an argument.
    * @returns A promise resolving to the result of the task execution.
    */
-  writeLock<T>(range: RyoikiRange, task: TaskCallback<T>): Promise<T>
+  writeLock<T>(range: RyoikiRange, task: TaskCallback<T>, timeout?: number|undefined): Promise<T>
   /**
    * Internal implementation of the write lock. Handles both overloads.
    * @template T - The return type of the task.
    * @param arg0 - Either a range or a task callback.
    * If a range is provided, the task is the second argument.
    * @param arg1 - The task to execute, required if a range is provided.
+   * @param arg2 - The timeout for acquiring the lock.
+   * If the lock cannot be acquired within this period, an error will be thrown.
+   * If this value is not provided, no timeout will be set.
    * @returns A promise resolving to the result of the task execution.
    */
-  writeLock<T>(arg0: RyoikiRange|TaskCallback<T>, arg1?: TaskCallback<T>): Promise<T> {
-    let range: RyoikiRange
-    let task: TaskCallback<T>
-    if (arg1) {
-      range = arg0 as RyoikiRange
-      task = arg1
-    }
-    else {
-      range = [-Infinity, Infinity]
-      task = arg0 as TaskCallback<T>
-    }
+  writeLock<T>(
+    arg0: RyoikiRange|TaskCallback<T>,
+    arg1?: TaskCallback<T>|number|undefined,
+    arg2?: number|undefined
+  ): Promise<T> {
+    const [range, task, timeout] = this._handleOverload(
+      [arg0, arg1, arg2],
+      {
+        rangeTask: (range, task) => [range, task, -1],
+        rangeTaskTimeout: (range, task, timeout) => [range, task, timeout],
+        task: (task) => [[-Infinity, Infinity], task, -1],
+        taskTimeout: (task, timeout) => [[-Infinity, Infinity], task, timeout],
+      },
+      {
+        task: [Function],
+        taskTimeout: [Function, Number],
+        rangeTask: [Array, Function],
+        rangeTaskTimeout: [Array, Function, Number],
+      }
+    )
     return this._lock(
       this.writeQueue,
       range,
+      timeout,
       task,
       () => {
         return (
