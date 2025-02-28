@@ -184,7 +184,7 @@ export class Ryoiki {
 
   private _checkWorking(range: RyoikiRange, workspaces: TaskUnits): boolean {
     let isLocked = false
-    for (const lock of this.readings.values()) {
+    for (const lock of workspaces.values()) {
       if (Ryoiki.IsRangeOverlap(range, lock.range)) {
         isLocked = true
         break
@@ -217,7 +217,8 @@ export class Ryoiki {
    * @returns `true` if a read lock can be acquired, `false` otherwise.
    */
   canRead(range: RyoikiRange): boolean {
-    return this.isWriting(range)
+    const writing = this.isWriting(range)
+    return !writing
   }
 
   /**

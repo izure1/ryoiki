@@ -227,4 +227,64 @@ describe('Ryoiki', () => {
 
     expect(sample.slice(1, 3)).toEqual([2, 2])
   })
+
+  test('is, can', async () => {
+    const { ryoiki, sample, read, write } = create(10)
+
+    // READ
+    expect(ryoiki.isReading(ryoiki.range(0, 1))).toBe(false)
+    expect(ryoiki.isWriting(ryoiki.range(0, 1))).toBe(false)
+    expect(ryoiki.canRead(ryoiki.range(0, 1))).toBe(true)
+    expect(ryoiki.canWrite(ryoiki.range(0, 1))).toBe(true)
+    
+    let lockA: string
+    const reading = ryoiki.readLock(ryoiki.range(0, 2), async (_lockId) => {
+      lockA = _lockId
+      await delay(1000)
+      return read(0, 2)
+    }).finally(() => ryoiki.readUnlock(lockA))
+
+    expect(ryoiki.isReading(ryoiki.range(0, 1))).toBe(true)
+    expect(ryoiki.isWriting(ryoiki.range(0, 1))).toBe(false)
+    expect(ryoiki.canRead(ryoiki.range(0, 1))).toBe(true)
+    expect(ryoiki.canWrite(ryoiki.range(0, 1))).toBe(false)
+    
+    expect(ryoiki.isReading(ryoiki.range(2, 3))).toBe(false)
+    expect(ryoiki.isWriting(ryoiki.range(2, 3))).toBe(false)
+    expect(ryoiki.canRead(ryoiki.range(2, 3))).toBe(true)
+    expect(ryoiki.canWrite(ryoiki.range(2, 3))).toBe(true)
+    
+    await reading
+    
+    expect(ryoiki.isReading(ryoiki.range(0, 1))).toBe(false)
+    expect(ryoiki.isWriting(ryoiki.range(0, 1))).toBe(false)
+    expect(ryoiki.canRead(ryoiki.range(0, 1))).toBe(true)
+    expect(ryoiki.canWrite(ryoiki.range(0, 1))).toBe(true)
+
+    // WRITE
+    let lockB: string
+    const writing = ryoiki.writeLock(ryoiki.range(0, 2), async (_lockId) => {
+      lockB = _lockId
+      await write(0, [1, 2])
+      await delay(1000)
+      return sample.slice(0, 2)
+    }).finally(() => ryoiki.writeUnlock(lockB))
+
+    expect(ryoiki.isReading(ryoiki.range(0, 1))).toBe(false)
+    expect(ryoiki.isWriting(ryoiki.range(0, 1))).toBe(true)
+    expect(ryoiki.canRead(ryoiki.range(0, 1))).toBe(false)
+    expect(ryoiki.canWrite(ryoiki.range(0, 1))).toBe(false)
+
+    expect(ryoiki.isReading(ryoiki.range(2, 3))).toBe(false)
+    expect(ryoiki.isWriting(ryoiki.range(2, 3))).toBe(false)
+    expect(ryoiki.canRead(ryoiki.range(2, 3))).toBe(true)
+    expect(ryoiki.canWrite(ryoiki.range(2, 3))).toBe(true)
+
+    await writing
+
+    expect(ryoiki.isReading(ryoiki.range(0, 1))).toBe(false)
+    expect(ryoiki.isWriting(ryoiki.range(0, 1))).toBe(false)
+    expect(ryoiki.canRead(ryoiki.range(0, 1))).toBe(true)
+    expect(ryoiki.canWrite(ryoiki.range(0, 1))).toBe(true)
+  })
 })
