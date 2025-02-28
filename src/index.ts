@@ -182,6 +182,55 @@ export class Ryoiki {
     })
   }
 
+  private _checkWorking(range: RyoikiRange, workspaces: TaskUnits): boolean {
+    let isLocked = false
+    for (const lock of this.readings.values()) {
+      if (Ryoiki.IsRangeOverlap(range, lock.range)) {
+        isLocked = true
+        break
+      }
+    }
+    return isLocked
+  }
+
+  /**
+   * Checks if there is any active read lock within the specified range.
+   * @param range The range to check for active read locks.
+   * @returns `true` if there is an active read lock within the range, `false` otherwise.
+   */
+  isReading(range: RyoikiRange): boolean {
+    return this._checkWorking(range, this.readings)
+  }
+
+  /**
+   * Checks if there is any active write lock within the specified range.
+   * @param range The range to check for active write locks.
+   * @returns `true` if there is an active write lock within the range, `false` otherwise.
+   */
+  isWriting(range: RyoikiRange): boolean {
+    return this._checkWorking(range, this.writings)
+  }
+
+  /**
+   * Checks if a read lock can be acquired within the specified range.
+   * @param range The range to check for read lock availability.
+   * @returns `true` if a read lock can be acquired, `false` otherwise.
+   */
+  canRead(range: RyoikiRange): boolean {
+    return this.isWriting(range)
+  }
+
+  /**
+   * Checks if a write lock can be acquired within the specified range.
+   * @param range The range to check for write lock availability.
+   * @returns `true` if a write lock can be acquired, `false` otherwise.
+   */
+  canWrite(range: RyoikiRange): boolean {
+    const reading = this.isReading(range)
+    const writing = this.isWriting(range)
+    return !reading && !writing
+  }
+
   /**
    * Acquires a read lock for the entire range.
    * @template T - The return type of the task.
